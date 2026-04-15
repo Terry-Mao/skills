@@ -7,6 +7,8 @@ description: >-
   (2) 用户要求文章增加到wiki/知识库中
   (3) 用户要求整理 obsidian wiki/知识库
   (4) 用户要求查询、搜索 obsidian wiki/知识库
+  (5) 用户针对 Wiki 内容提问、对话、讨论 
+  (6) 用户要求保存问答/讨论结果
 ---
 
 # Obsidian Wiki
@@ -19,26 +21,30 @@ description: >-
 - 整理已有文章，写入结构化摘要
 - 构建原文 → 摘要 → 概念的三层索引
 - 定期健康检查，补全和更新概念库
+- 搜索、查询、问答 Wiki 内容，并与用户讨论 
+- 将问答/讨论结果自动归档到 outputs 目录
 
 ## 前置条件
 
-- 文章已保存在 Obsidian Vault 中，如果用户不指定 Vault，则为默认
+- 文章已保存在 Obsidian Vault 中
 - **文章已经过 `obsidian-backlinks` 处理**（已有 YAML frontmatter、tags、双链）
 - 用户确认提取的概念列表（或授权自动判断）
 
 ## 目录结构
 
-| 用途         | 路径                                          |
-| ---------- | ------------------------------------------- |
-| 资源目录（原文）   | `<原文目录>`                                    |
-| Wiki 根目录   | `<原文目录>/Wiki/`                              |
-| 摘要目录       | `<Wiki 根目录>/Summaries/`                     |
-| 概念目录       | `<Wiki 根目录>/Concepts/`                      |
-| 索引文件       | `<Wiki 根目录>/INDEX.md`                       |
-| 日志文件       | `<Wiki 根目录>/LOG.md`                         |
-| 已处理清单      | `<Wiki 根目录>/.done.files`                    |
-| 概念归一化配置    | `.concepts.yaml`（workspace 中）               |
-| Vault 本地目录 | 通过 `obsidian vault info="path" silent` 命令获取 |
+| 用途         | 路径                                            |
+| ---------- | --------------------------------------------- |
+| 资源目录（原文）   | `<原文目录>`                                      |
+| Wiki 根目录   | `<原文目录>/Wiki/`                                |
+| 摘要目录       | `<Wiki 根目录>/Summaries/`                       |
+| 概念目录       | `<Wiki 根目录>/Concepts/`                        |
+| 索引文件       | `<Wiki 根目录>/INDEX.md`                         |
+| 日志文件       | `<Wiki 根目录>/LOG.md`                           |
+| 已处理清单      | `<Wiki 根目录>/.done.files`                      |
+| 概念归一化配置    | `.concepts.yaml`（workspace 中）                 |
+| 问答目录       | `<Wiki 根目录>/outputs/`                         |
+| Vault 本地目录 | 通过 `obsidian vault info="path" silent` 命令获取   |
+| Vault 名    | 如果用户不指定，默认`obsidian vault info="name" silent` |
 
 ## 核心规则
 
@@ -126,13 +132,7 @@ write(path="<Vault 本地目录>/<摘要目录>/文章名 - Summary.md", content
 
 #### 2a. 联网搜索（必须）
 
-使用 minimax-search 搜索该概念的最新内容：
-
-```bash
-mcporter call minimax_coding.web_search query="<概念名> 最新进展"
-```
-
-提取 10 篇相关结果的标题、链接、摘要。
+搜索该概念的最新内容，关键字为：`<概念名> 最新进展`，提取 10 篇相关结果的标题、链接、摘要。
 
 #### 2b. 编写或更新概念文章
 
@@ -268,10 +268,7 @@ obsidian list path="<概念目录>" silent
 
 - 读取概念文章，检查 YAML frontmatter 中的 `date` 或文章末尾的"最新进展"章节
 - **阈值**：超过 90 天未更新的概念，触发联网搜索
-- 联网搜索该概念最新进展：
-  ```bash
-  mcporter call minimax_coding.web_search query="<概念名> 最新进展"
-  ```
+- 联网搜索该概念最新进展，关键字：`<概念名> 最新进展`
 - 有重要更新（新论文、新版本、重大变更）则补充到文章中
 
 #### 2b. 引用完整性
@@ -329,3 +326,127 @@ obsidian list path="<概念目录>" silent
 - **修复引用**：补全 References 章节
 - **重建索引**：同增加文章的步骤 3
 - **记录日志**：同增加文章的步骤 5
+
+## 搜索与问答
+
+### 步骤 1：接收用户问题
+用户问题示例：
+- KV Cache 为什么会爆显存？
+- RoPE 和 ALiBi 区别是什么？
+- 解释一下 Attention Sink
+
+### 步骤 2：检索 Wiki 内容
+
+从三个位置检索信息：
+1. **概念文章**
+2. **摘要库**
+3. **问答库**
+4. **INDEX 索引**：关键词匹配
+
+```bash
+obsidian search --path="<概念目录>" query="KV Cache" silent
+obsidian search --path="<摘要目录>" query="KV Cache" silent
+obsidian search --path="<问答目录>" query="KV Cache" silent
+```
+
+### 步骤 3：结合联网信息补充（必要时）
+
+如果 Wiki 信息不足，自动联网补全。
+
+### 步骤 4：生成结构化回答
+
+遵循格式：
+```markdown
+# 问答：KV Cache 为什么会占用大量显存？
+
+## 简短结论
+...
+
+## 原理
+...
+
+## 关键机制
+...
+
+## 相关 Wiki 概念
+- [[KV Cache]]
+- [[PagedAttention]]
+- [[Attention Sink]]
+
+## References
+- [[KV Cache]]
+- [[论文：...]]
+```
+
+### 步骤 5：与用户多轮讨论
+
+- 允许用户追问、扩展、对比、质疑
+- 每轮回答都引用 Wiki 内链 `[[...]]`
+- 不编造无来源结论
+- 保持学术 / 工程风格
+
+## 归档问答
+
+### 步骤 1：结束讨论后自动归档
+
+当用户说：
+
+- 保存
+- 归档
+- 记录下来
+- 写到 wiki outputs
+
+自动执行保存。
+
+### 步骤 2：生成归档文件
+
+文件名格式：
+```
+YYYY-MM-DD-问答-关键词.md
+```
+
+示例：
+```
+2026-04-15-问答-KV-Cache-显存问题.md
+```
+
+内容结构：
+```markdown
+---
+title: "问答：KV Cache 显存占用问题"
+tags: [KV Cache, 推理优化, 显存]
+date: 2026-04-15
+source: wiki-discussion
+---
+
+# 问答：KV Cache 为什么会爆显存？
+
+（完整对话内容）
+
+## 相关 Wiki
+- [[KV Cache]]
+- [[PagedAttention]]
+
+## References
+- [[KV Cache]]
+- [https://...]]
+```
+
+### 步骤 3：写入 outputs 目录
+
+使用 `write` 避免 LaTeX 乱码：
+```
+write(path="<Vault 本地目录>/outputs/2026-04-15-xxx.md", content="...")
+```
+
+### 步骤 4：更新索引 & 日志
+
+- 在 INDEX.md 增加「问答归档」板块
+```markdown
+## 问答归档
+- [[2026-04-15-问答-KV-Cache-显存问题]]
+- [[2026-04-15-问答-RoPE-vs-ALiBi]]
+```
+- 在 LOG.md 记录本次问答
+
+---
