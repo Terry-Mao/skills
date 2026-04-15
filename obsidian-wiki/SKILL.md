@@ -345,9 +345,9 @@ obsidian list path="<概念目录>" silent
 4. **INDEX 索引**：关键词匹配
 
 ```bash
-obsidian search --path="<概念目录>" query="KV Cache" silent
-obsidian search --path="<摘要目录>" query="KV Cache" silent
-obsidian search --path="<问答目录>" query="KV Cache" silent
+obsidian search path="<概念目录>" query="KV Cache" silent
+obsidian search path="<摘要目录>" query="KV Cache" silent
+obsidian search path="<问答目录>" query="KV Cache" silent
 ```
 
 ### 步骤 3：结合联网信息补充（必要时）
