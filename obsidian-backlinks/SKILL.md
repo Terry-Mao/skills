@@ -15,7 +15,7 @@ description: >-
 
 ## 前置条件
 
-- 文章已存在于 Obsidian Vault
+- 文章已存在于 Obsidian Vault，如果用户不指定 Vault，则为默认
 - 用户允许自动识别技术概念（或指定标签范围）
 - 概念标准化配置文件：`.concepts.yaml`（不存在则自动创建在 `workspace` 中）
 - 格式严格遵循 YAML，示例：
@@ -43,10 +43,10 @@ excluded:
 
 ### 1. 读取文章
 
-Vault 为默认。使用 Obsidian CLI，读取目标文章：
+使用 Obsidian CLI，读取目标文章：
 
 ```bash
-obsidian read path="Work/.../文章名.md"
+obsidian read path="Work/.../文章名.md" slient
 ```
 
 ### 2. 概念识别与归一化
@@ -109,8 +109,16 @@ obsidian read path="Work/.../文章名.md"
 
 ### 5. 写入文件
 
+先获取 vault 根目录：
+
 ```bash
-obsidian create name="文章名" path="Work/..." content="新的完整内容" overwrite silent
+obsidian vault info="path" silent
+```
+
+直接使用 `write` 工具操作文件，避免 Obsidian CLI 对于 \t、\n 的转义处理问题：
+
+```
+write(path="<vault根目录>/<文章路径>", content="...")
 ```
 
 ## 输出规范
